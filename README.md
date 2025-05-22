@@ -1,7 +1,3 @@
-# generate-pdf-orcad
-An actions repository for generating PDFs from OrCAD schematics
-
-
 # Generate a PDF from OrCAD schematics
 
 Generate a PDF output file from an OrCAD schematic file on AllSpice Hub using
