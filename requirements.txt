@@ -2,4 +2,4 @@ py-allspice~=3.9.0
 cairosvg~=2.8.2
 pymupdf~=1.26.0
 pyyaml~=6.0
-typing-extensions~=4.12.2
+typing-extensions~=4.13.2
