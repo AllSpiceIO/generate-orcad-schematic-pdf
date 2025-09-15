@@ -5,7 +5,10 @@ inputs:
   repository:
     description: "The repository in which the .dsn file update was made"
     required: true
-  ref:
+  base_ref:
+    description: "The base branch in the case of an existing design review"
+    required: true
+  head_ref:
     description: "The branch in which the .dsn file update was made"
     required: true
   sha:
@@ -37,7 +40,8 @@ runs:
   image: "Dockerfile"
   args:
     - ${{ inputs.repository }}
-    - ${{ inputs.ref }}
+    - ${{ inputs.base_ref }}
+    - ${{ inputs.head_ref }}
     - ${{ inputs.sha }}
     - "--allspice_hub_url"
     - ${{ github.server_url }}
