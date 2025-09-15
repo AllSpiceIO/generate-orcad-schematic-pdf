@@ -15,6 +15,9 @@ from xml.etree import ElementTree as ET
 GET_LAST_COMMIT_ON_TARGET_BRANCH_ENDPOINT = (
     """/repos/{owner}/{repo}/commits?sha={ref}&limit=1"""
 )
+DELETE_FILE_ENDPOINT = (
+    """/repos/{owner}/{repo}/contents/{filepath}?branch={branch}"""
+)
 
 
 ###############################################################################
@@ -46,6 +49,21 @@ def push_changes_on_target_branch(ref, sha):
     except subprocess.CalledProcessError as e:
         print(e.returncode)
         print(e.output)
+
+
+###############################################################################
+def remove_potential_conflicts(client, repository, pdfs_saved_to_repo, base_ref):
+    for pdf in pdfs_saved_to_repo:
+        print("- Deleting " + pdf + " in base branch " + base_ref)
+        commits_json = client.requests_delete(
+            DELETE_FILE_ENDPOINT.format(
+                owner=repository.owner.username,
+                repo=repository.name,
+                filepath=pdf,
+                branch=base_ref,
+                token=auth_token,
+            )
+        )
 
 
 ###############################################################################
@@ -152,6 +170,7 @@ def generate_orcad_pdfs(
     # Declare commit link
     commit_link = repository.url + "/commit/" + sha
     # For all design files, generate PDFs
+    pdfs_saved_to_repo = []
     for design_doc in design_doc_paths:
         print("- Processing " + design_doc)
         # Get SVG of schematic
@@ -233,6 +252,9 @@ def generate_orcad_pdfs(
             repo_pdfpath = os.path.splitext(design_doc)[0] + ".pdf"
             print("- Saving PDF to repo path " + repo_pdfpath)
             doc.save(repo_pdfpath)
+            pdfs_saved_to_repo.append(repo_pdfpath)
+    # Return list of PDF files saved to repo
+    return pdfs_saved_to_repo
 
 
 ###############################################################################
@@ -240,7 +262,8 @@ if __name__ == "__main__":
     # Initialize argument parser
     parser = ArgumentParser()
     parser.add_argument("repository", help="Repository object for the target repo")
-    parser.add_argument("ref", help="Target branch")
+    parser.add_argument("base_ref", help="Base branch")
+    parser.add_argument("head_ref", help="Head branch")
     parser.add_argument("sha", help="Commit hash that triggered this action")
     parser.add_argument(
         "--allspice_hub_url",
@@ -286,21 +309,25 @@ if __name__ == "__main__":
         except FileExistsError:
             pass
         # Generate PDF
-        generate_orcad_pdfs(
+        pdfs_saved_to_repo = generate_orcad_pdfs(
             design_doc_paths,
             repository,
             commit_to_branch,
             args.title_block_field,
             sha,
             name,
-            args.ref,
+            args.head_ref,
         )
         # Commit back to the repo if specified
         if args.commit_to_branch:
             # Set git config user and email
             set_git_config(name, email)
+            # If the file committed to branch is part of a design review,
+            # delete the file in the base branch to remove potential conficts
+            if args.base_ref and args.base_ref != args.head_ref:
+                remove_potential_conflicts(allspice, repository, pdfs_saved_to_repo, args.base_ref)
             # Push changes to the target branch
-            push_changes_on_target_branch(args.ref, sha)
+            push_changes_on_target_branch(args.head_ref, sha)
             # Zip all the generated PDFs
         with zipfile.ZipFile("pdfs.zip", "w", zipfile.ZIP_DEFLATED) as zipper:
             for root, dirs, files in os.walk("/pdfs"):
