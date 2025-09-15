@@ -324,6 +324,8 @@ if __name__ == "__main__":
             set_git_config(name, email)
             # If the file committed to branch is part of a design review,
             # delete the file in the base branch to remove potential conficts
+            print(args.base_ref)
+            print(args.head_ref)
             if args.base_ref and args.base_ref != args.head_ref:
                 remove_potential_conflicts(allspice, repository, pdfs_saved_to_repo, args.base_ref)
             # Push changes to the target branch
