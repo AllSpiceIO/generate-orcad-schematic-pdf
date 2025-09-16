@@ -65,32 +65,35 @@ def remove_potential_conflicts(client, repository, pdfs_saved_to_repo, head_ref)
     for dr in affected_drs:
         print(">> Handling DR " + dr.title + " (" + str(dr.number) +")")
         for pdf in pdfs_saved_to_repo:
-            # Get the SHA of the file in the base branch
-            response = client.requests_get(
-                GET_INDIVIDUAL_FILE_ENDPOINT.format(
-                    owner=repository.owner.username,
-                    repo=repository.name,
-                    filepath=pdf,
-                    ref=dr.base,
-                    token=auth_token,
-                )
-            )
-            sha = response["sha"]
-            print("- Deleting " + pdf + " in base branch " + dr.base)
-            for sha in [response["sha"], response["last_commit_sha"]]:
-                try:
-                    commits_json = client.requests_delete(
-                        DELETE_INDIVIDUAL_FILE_ENDPOINT.format(
-                            owner=repository.owner.username,
-                            repo=repository.name,
-                            filepath=pdf,
-                            branch=dr.base,
-                            sha=sha,
-                            token=auth_token,
-                        )
+            try:
+                # Get the SHA of the file in the base branch
+                response = client.requests_get(
+                    GET_INDIVIDUAL_FILE_ENDPOINT.format(
+                        owner=repository.owner.username,
+                        repo=repository.name,
+                        filepath=pdf,
+                        ref=dr.base,
+                        token=auth_token,
                     )
-                except Exception:
-                    continue
+                )
+                sha = response["sha"]
+                print("- Deleting " + pdf + " in base branch " + dr.base)
+                for sha in [response["sha"], response["last_commit_sha"]]:
+                    try:
+                        commits_json = client.requests_delete(
+                            DELETE_INDIVIDUAL_FILE_ENDPOINT.format(
+                                owner=repository.owner.username,
+                                repo=repository.name,
+                                filepath=pdf,
+                                branch=dr.base,
+                                sha=sha,
+                                token=auth_token,
+                            )
+                        )
+                    except Exception:
+                        continue
+            except Exception:
+                continue
 
 
 ###############################################################################
