@@ -19,7 +19,7 @@ GET_INDIVIDUAL_FILE_ENDPOINT = (
     """/repos/{owner}/{repo}/contents/{filepath}?ref={ref}"""
 )
 DELETE_INDIVIDUAL_FILE_ENDPOINT = (
-    """/repos/{owner}/{repo}/contents/{filepath}?sha={sha}"""
+    """/repos/{owner}/{repo}/contents/{filepath}?branch={branch}&sha={sha}"""
 )
 
 
@@ -84,6 +84,7 @@ def remove_potential_conflicts(client, repository, pdfs_saved_to_repo, head_ref)
                             owner=repository.owner.username,
                             repo=repository.name,
                             filepath=pdf,
+                            branch=dr.base,
                             sha=sha,
                             token=auth_token,
                         )
