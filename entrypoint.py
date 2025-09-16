@@ -75,6 +75,7 @@ def remove_potential_conflicts(client, repository, pdfs_saved_to_repo, head_ref)
                     token=auth_token,
                 )
             )
+            print(response["sha"], response["last_commit_sha"])
             sha = response["sha"]
             print("- Deleting " + pdf + " in base branch " + dr.base)
             commits_json = client.requests_delete(
