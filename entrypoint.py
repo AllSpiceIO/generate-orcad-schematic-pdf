@@ -7,7 +7,7 @@ import pymupdf
 import zipfile
 import cairosvg
 import subprocess
-from allspice import AllSpice
+from allspice import AllSpice, DesignReview
 from argparse import ArgumentParser
 from xml.etree import ElementTree as ET
 
@@ -52,18 +52,26 @@ def push_changes_on_target_branch(ref, sha):
 
 
 ###############################################################################
-def remove_potential_conflicts(client, repository, pdfs_saved_to_repo, base_ref):
-    for pdf in pdfs_saved_to_repo:
-        print("- Deleting " + pdf + " in base branch " + base_ref)
-        commits_json = client.requests_delete(
-            DELETE_FILE_ENDPOINT.format(
-                owner=repository.owner.username,
-                repo=repository.name,
-                filepath=pdf,
-                branch=base_ref,
-                token=auth_token,
+def remove_potential_conflicts(client, repository, pdfs_saved_to_repo, head_ref):
+    # Get the open design reviews in this repo
+    all_drs = repository.get_design_reviews(state="open")
+    # Filter DRs by head ref
+    affected_drs = [dr for dr in all_drs if dr.head == head_ref]
+    # Go through all open DRs and delete the corresponding binary
+    # file in the base branch
+    for dr in affected_drs:
+        print(">> Handling DR " + dr.title + " (" + str(dr.number) +")")
+        for pdf in pdfs_saved_to_repo:
+            print("- Deleting " + pdf + " in base branch " + dr.base)
+            commits_json = client.requests_delete(
+                DELETE_FILE_ENDPOINT.format(
+                    owner=repository.owner.username,
+                    repo=repository.name,
+                    filepath=pdf,
+                    branch=dr.base,
+                    token=auth_token,
+                )
             )
-        )
 
 
 ###############################################################################
@@ -324,10 +332,7 @@ if __name__ == "__main__":
             set_git_config(name, email)
             # If the file committed to branch is part of a design review,
             # delete the file in the base branch to remove potential conficts
-            print(args.base_ref)
-            print(args.head_ref)
-            if args.base_ref and args.base_ref != args.head_ref:
-                remove_potential_conflicts(allspice, repository, pdfs_saved_to_repo, args.base_ref)
+            remove_potential_conflicts(allspice, repository, pdfs_saved_to_repo, args.head_ref)
             # Push changes to the target branch
             push_changes_on_target_branch(args.head_ref, sha)
             # Zip all the generated PDFs
