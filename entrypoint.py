@@ -15,8 +15,11 @@ from xml.etree import ElementTree as ET
 GET_LAST_COMMIT_ON_TARGET_BRANCH_ENDPOINT = (
     """/repos/{owner}/{repo}/commits?sha={ref}&limit=1"""
 )
-DELETE_FILE_ENDPOINT = (
-    """/repos/{owner}/{repo}/contents/{filepath}?branch={branch}"""
+GET_INDIVIDUAL_FILE_ENDPOINT = (
+    """/repos/{owner}/{repo}/contents/{filepath}?ref={ref}"""
+)
+DELETE_INDIVIDUAL_FILE_ENDPOINT = (
+    """/repos/{owner}/{repo}/contents/{filepath}?sha={sha}"""
 )
 
 
@@ -62,13 +65,24 @@ def remove_potential_conflicts(client, repository, pdfs_saved_to_repo, head_ref)
     for dr in affected_drs:
         print(">> Handling DR " + dr.title + " (" + str(dr.number) +")")
         for pdf in pdfs_saved_to_repo:
-            print("- Deleting " + pdf + " in base branch " + dr.base)
-            commits_json = client.requests_delete(
-                DELETE_FILE_ENDPOINT.format(
+            # Get the SHA of the file in the base branch
+            response = client.requests_get(
+                GET_INDIVIDUAL_FILE_ENDPOINT.format(
                     owner=repository.owner.username,
                     repo=repository.name,
                     filepath=pdf,
-                    branch=dr.base,
+                    ref=dr.base,
+                    token=auth_token,
+                )
+            )
+            sha = response["sha"]
+            print("- Deleting " + pdf + " in base branch " + dr.base)
+            commits_json = client.requests_delete(
+                DELETE_INDIVIDUAL_FILE_ENDPOINT.format(
+                    owner=repository.owner.username,
+                    repo=repository.name,
+                    filepath=pdf,
+                    sha=sha,
                     token=auth_token,
                 )
             )
